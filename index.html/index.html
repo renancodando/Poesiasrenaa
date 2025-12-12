@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+    <title>Emericpoeta</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cdefs%3E%3ClinearGradient id='storm' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%231a0b2e'/%3E%3Cstop offset='1' stop-color='%23000'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='100' height='100' fill='url(%23storm)' rx='20' ry='20'/%3E%3C!-- Raio Amarelo Vivo --%3E%3Cpath d='M45 5 L25 45 H45 L35 85' fill='none' stroke='%23FFD700' stroke-width='6' stroke-linejoin='round'/%3E%3C!-- Ondas Ciano Brilhante --%3E%3Cpath d='M0 70 Q 25 55 50 70 T 100 70 V 100 H 0 Z' fill='%2300FFFF' opacity='0.7'/%3E%3C!-- Barco Vermelho Vibrante --%3E%3Cpath d='M30 65 L70 65 L60 85 H40 Z' fill='%23FF3333' stroke='%23FFF' stroke-width='2'/%3E%3C!-- Vela Branca --%3E%3Cpath d='M50 25 L50 60 L75 60 Z' fill='%23FFFFFF'/%3E%3C!-- Onda Frontal --%3E%3Cpath d='M0 85 Q 25 75 50 85 T 100 85 V 100 H 0 Z' fill='%230088AA' opacity='0.8'/%3E%3C/svg%3E">
+    <meta property="og:title" content="Poesias de um Coração Realista" />
+    <meta property="og:description" content="Que o meu coração diga o que eu não tenho coragem. Um projeto poético e dramático." />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://seusite.com.br" /> 
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@400;700;900&family=EB+Garamond:ital,wght@0,400;0,700;1,400&family=Open+Sans:wght@400;700&display=swap" rel="stylesheet">
+    
+    <!-- Link para o CSS externo -->
+    <link rel="stylesheet" href="style.css">
+    
+    <!-- Vue.js CDN -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+</head>
+<body role="document">
+    <div id="main-container" :class="{ 'screen-pulse': isAudioPlaying }">
+        <canvas id="particle-canvas" class="animated-element"></canvas> 
+        <div class="rain-layer"></div>
+        <div id="lightning-layer"></div>
+        <div id="dramatic-elements">
+            <div class="animated-element heart-single"></div>
+            <div class="animated-element heart-artery" style="left: 15%; transform: rotate(-50deg);"></div>
+            <div class="animated-element heart-artery" style="left: 85%; transform: rotate(50deg);"></div>
+        </div>
+        <div id="bg-effect"></div>
+        <div id="app">
+            
+            <!-- Contador de Vida Gasta -->
+            <div class="life-counter">
+                Batimentos testemunhados: <span>{{ beatsLost }}</span>
+            </div>
+
+            <!-- Notificação Toast -->
+           <div :class="['toast-notification', { 'show': toastVisible }]">
+                {{ toastMessage }}
+            </div>
+
+            <nav class="topnav" role="navigation" aria-label="Navegação Principal">
+                <div class="btn-group-row">
+                    <button class="btn" @click.stop="toggleMenu" :aria-expanded="isMenuOpen" aria-label="Menu">
+                        {{ isMenuOpen ? '✕' : '☰' }} Menu
+                    </button>
+                    <button :class="['btn', { 'active-audio': isAudioPlaying }]" @click="toggleAudio" aria-label="Som">
+                        {{ isAudioPlaying ? '🔊 ON' : '🔇 OFF' }}
+                    </button>
+                    <button class="btn" @click="openFeedbackModal" aria-label="Opinar">
+                        ✎ Opinar
+                    </button>
+                </div>
+                <div id="menu-poemas-list" :class="['menu-list-wrapper', { 'is-open': isMenuOpen }]" @click.stop role="menu">
+                    <button class="btn" @click="showSection('home')" role="menuitem">Início</button>
+                    <button class="btn" @click="openRandomPoem" role="menuitem" style="color: #ffaaaa;">🎲 Poema Aleatório</button>
+                    <button v-for="poema in poemas" :key="poema.id" class="btn" @click="showSection(poema.id)" role="menuitem">
+                        {{ poema.titulo }}
+                    </button>
+                </div>
+            </nav>
+            <main class="page-content" v-show="isHomeActive" :style="{ opacity: isHomeActive ? 1 : 0, transform: isHomeActive ? 'translateY(0)' : 'translateY(10px)', pointerEvents: isHomeActive ? 'auto' : 'none' }" role="main">
+                <h1 class="title-main">Poesias</h1>
+                <h4 class="title-sub">
+                    Que o meu coração diga o que eu não tenho coragem, o que minhas cordas vocais não permitem, e que ele se encha de força para, enfim, transbordar tudo aquilo que eu sempre senti mas nunca consegui expressar.
+                </h4>
+            </main>
+            <section v-if="activePoema" class="poesia-section" aria-modal="true" role="dialog" :aria-labelledby="'poema-title-' + activePoema.id">
+                <div class="poema-controls">
+                    <button class="btn" @click="showSection('home')" aria-label="Voltar">
+                        ← Voltar
+                    </button>
+                    
+                    <!-- Navegação Anterior / Próxima -->
+                    <div class="nav-controls">
+                        <button class="btn" @click="prevPoem" aria-label="Poema Anterior">
+                             ← Anterior
+                        </button>
+                        <button class="btn" @click="nextPoem" aria-label="Próximo Poema">
+                             Próxima →
+                        </button>
+                    </div>
+                </div>
+                <div class="poesia-content-wrapper">
+                    <h2 :id="'poema-title-' + activePoema.id">{{ activePoema.titulo }}</h2>
+                    <!-- Texto com Scroll Reveal (linhas animadas) -->
+                    <!-- Adicionado click handler para copiar verso -->
+                    <div v-for="(line, index) in formattedPoemLines" 
+                         :key="index" 
+                         class="poem-line"
+                         :class="{ 'poem-first-letter': index === 0 }"
+                         @click="copyVerse(line)"
+                         title="Toque para copiar este verso">
+                        {{ line }}
+                    </div>
+                    
+                    <!-- Botão de Copiar ao Final -->
+                    <div class="copy-footer">
+                        <button class="btn-copy-full" @click="copyFullPoem">
+                           {{ copyBtnText }}
+                        </button>
+                    </div>
+                </div>
+            </section>
+            <div class="modal-overlay" v-if="isFeedbackModalOpen" @click.self="closeFeedbackModal">
+                <div class="modal-content">
+                    <h3 class="modal-title">Deixe sua Opinião</h3>
+                    <form @submit.prevent="sendFeedback">
+                        <div class="form-group">
+                            <label class="form-label">Nome</label>
+                            <input type="text" v-model="feedbackForm.name" class="form-input" required placeholder="Seu nome">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">E-mail</label>
+                            <input type="email" v-model="feedbackForm.email" class="form-input" required placeholder="Seu e-mail">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Mensagem</label>
+                            <textarea v-model="feedbackForm.message" class="form-textarea" required placeholder="Escreva sua mensagem..."></textarea>
+                        </div>
+                        <div class="modal-actions">
+                            <button type="button" class="btn" @click="closeFeedbackModal">Cancelar</button>
+                            <button type="submit" class="btn btn-submit">Enviar</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div> 
+    
+    <!-- Link para o JS externo -->
+    <script src="script.js"></script>
+</body>
+</html>
